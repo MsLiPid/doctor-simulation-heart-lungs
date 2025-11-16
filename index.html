@@ -19,12 +19,13 @@ pre{background:#f3fbff;padding:10px;border-radius:6px;overflow:auto;}
 .result.bad{background:#fbe0e0;color:#d64545;padding:8px;border-radius:6px;margin-top:8px;}
 textarea{width:100%;min-height:60px;margin-top:6px;padding:6px;border-radius:6px;border:1px solid #ccc;}
 #downloadBtn{background:#1a9a3a;}
+#nextPatientBtn{background:#ff7f50;}
 </style>
 </head>
 <body>
 <div class="container">
 <h1>Doctor Simulation — Circulatory & Respiratory Systems</h1>
-<p>Interview your patient, check investigations, and make a diagnosis. Fill in the form as you work through the case.</p>
+<p>Interview your patient, check investigations, and make a diagnosis. Fill in the form as you work through the case. Use "Next Patient" to get another random patient.</p>
 
 <div id="case" class="panel">
   <h2 id="caseName">Patient</h2>
@@ -81,10 +82,12 @@ textarea{width:100%;min-height:60px;margin-top:6px;padding:6px;border-radius:6px
     <textarea id="finalDiagnosis" placeholder="Write your final diagnosis..."></textarea>
     <button id="downloadBtn">Download Answers</button>
   </div>
+
+  <button id="nextPatientBtn">Next Patient</button>
 </div>
 
 <script>
-// Patient data
+// Patient data (original 3 + 6 new)
 const cases = [
   {id:1,name:"Liam O.",age:64,sex:"Male",
    summary:"Sudden chest pain radiating to left arm, sweaty and nauseous.",
@@ -115,6 +118,67 @@ const cases = [
    diagnosis:"Pneumonia",
    choices:["Pneumonia","COPD exacerbation","Heart failure","Anemia"],
    notes:"Fever, raised WBC/CRP, CXR consolidation → pneumonia."
+  },
+  // New patients
+  {id:4,name:"Sophia L.",age:45,sex:"Female",
+   summary:"Shortness of breath on exertion, mild ankle swelling.",
+   symptoms:{chief:"Shortness of breath",onset:"Weeks",worse:"with activity",breath:"yes",chest:false,history:"high blood pressure",smoke:"no",meds:"diuretics"},
+   vitals:{HR:88,BP:"140/90",RR:22,SpO2:"94%",Temp:"36.9°C"},
+   xray:{desc:"Mild pulmonary congestion, heart slightly enlarged."},
+   blood:{troponin:"Normal",hb:13.5,wbc:7,crp:3},
+   diagnosis:"Heart failure",
+   choices:["Heart failure","Pneumonia","Asthma","Anemia"],
+   notes:"Signs of fluid retention and dyspnea on exertion indicate heart failure."
+  },
+  {id:5,name:"Ethan R.",age:19,sex:"Male",
+   summary:"Persistent cough for 2 weeks, mild fever, occasional wheezing.",
+   symptoms:{chief:"Cough and mild fever",onset:"2 weeks",worse:"sometimes exercise",breath:"occasional",chest:false,history:"asthma",smoke:"yes occasionally",meds:"inhaler"},
+   vitals:{HR:90,BP:"120/75",RR:20,SpO2:"95%",Temp:"37.2°C"},
+   xray:{desc:"Lungs clear, no consolidation."},
+   blood:{troponin:"Normal",hb:14,wbc:9,crp:5},
+   diagnosis:"Mild asthma exacerbation",
+   choices:["Mild asthma exacerbation","Pneumonia","COPD","Bronchitis"],
+   notes:"Asthma history and wheezing indicate mild asthma exacerbation."
+  },
+  {id:6,name:"Mia S.",age:68,sex:"Female",
+   summary:"Severe fatigue, pale skin, shortness of breath climbing stairs.",
+   symptoms:{chief:"Fatigue and breathlessness",onset:"Months",worse:"on exertion",breath:"yes",chest:false,history:"anemia",smoke:"no",meds:"iron supplements"},
+   vitals:{HR:95,BP:"110/70",RR:18,SpO2:"96%",Temp:"36.7°C"},
+   xray:{desc:"Lungs clear, heart normal."},
+   blood:{troponin:"Normal",hb:9,wbc:7,crp:3},
+   diagnosis:"Iron-deficiency anemia",
+   choices:["Iron-deficiency anemia","Pneumonia","Heart failure","COPD"],
+   notes:"Low hemoglobin and symptoms indicate iron-deficiency anemia."
+  },
+  {id:7,name:"Lucas T.",age:50,sex:"Male",
+   summary:"Sudden shortness of breath after long flight, chest tightness.",
+   symptoms:{chief:"Acute shortness of breath",onset:"Hours",worse:"after flight",breath:"yes",chest:"mild",history:"DVT last year",smoke:"yes",meds:"anticoagulant"},
+   vitals:{HR:105,BP:"130/85",RR:26,SpO2:"89%",Temp:"36.8°C"},
+   xray:{desc:"Possible small pulmonary embolism on imaging."},
+   blood:{troponin:"Normal",hb:14,wbc:8,crp:5},
+   diagnosis:"Pulmonary embolism",
+   choices:["Pulmonary embolism","Heart attack","Pneumonia","Asthma"],
+   notes:"Acute dyspnea, history of DVT, hypoxia → pulmonary embolism."
+  },
+  {id:8,name:"Olivia B.",age:33,sex:"Female",
+   summary:"Wheezing and tight chest after pollen exposure, itchy eyes.",
+   symptoms:{chief:"Wheeze with allergy",onset:"Today",worse:"pollen exposure",breath:"yes",chest:false,history:"seasonal allergies",smoke:"no",meds:"antihistamines"},
+   vitals:{HR:92,BP:"115/70",RR:22,SpO2:"96%",Temp:"36.7°C"},
+   xray:{desc:"Lungs clear, no consolidation."},
+   blood:{troponin:"Normal",hb:13,wbc:7,crp:2},
+   diagnosis:"Allergic asthma",
+   choices:["Allergic asthma","COPD","Pneumonia","Heart failure"],
+   notes:"Symptoms triggered by allergens indicate allergic asthma."
+  },
+  {id:9,name:"Noah C.",age:70,sex:"Male",
+   summary:"Gradual swelling of legs, shortness of breath when lying down, nocturnal cough.",
+   symptoms:{chief:"Leg swelling and nocturnal cough",onset:"Weeks",worse:"lying down",breath:"yes",chest:false,history:"hypertension",smoke:"no",meds:"beta-blocker"},
+   vitals:{HR:85,BP:"135/80",RR:20,SpO2:"94%",Temp:"36.8°C"},
+   xray:{desc:"Cardiomegaly, mild pulmonary congestion."},
+   blood:{troponin:"Normal",hb:13,wbc:7,crp:3},
+   diagnosis:"Congestive heart failure",
+   choices:["Congestive heart failure","Pneumonia","Asthma","Anemia"],
+   notes:"Leg swelling and nocturnal dyspnea suggest CHF."
   }
 ];
 
@@ -196,6 +260,16 @@ document.getElementById('downloadBtn').onclick=function(){
 window.onload = function() {
     const randomCase = cases[Math.floor(Math.random() * cases.length)];
     openCase(randomCase.id);
+};
+
+// Next Patient button
+document.getElementById('nextPatientBtn').onclick = function() {
+    let nextCase;
+    do {
+        nextCase = cases[Math.floor(Math.random() * cases.length)];
+    } while(nextCase.id === currentCase.id && cases.length > 1);
+    openCase(nextCase.id);
+    document.getElementById('diagnosisResult').innerHTML = '';
 };
 </script>
 </body>
