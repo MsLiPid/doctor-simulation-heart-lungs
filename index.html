@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doctor Simulation - Circulatory & Respiratory</title>
+<style>
+  body{margin:0;font-family:sans-serif;background:#f4f9fc;color:#122232;}
+  .container{max-width:900px;margin:auto;padding:20px;}
+  h1{font-size:24px;margin-bottom:4px;}
+  h2{font-size:20px;margin-top:20px;}
+  .patient-list, .questions, .invest-tabs, .diagnosis{margin-top:12px;}
+  button{padding:10px 14px;margin:4px;border:none;border-radius:6px;background:#0b6b9a;color:white;cursor:pointer;}
+  button.disabled{background:#ccc;cursor:default;}
+  .panel{background:white;padding:12px;border-radius:8px;margin-top:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);}
+  .tab{display:inline-block;padding:6px 10px;margin-right:6px;border-radius:6px;border:1px solid #d0e4f2;background:white;cursor:pointer;}
+  .tab.active{background:#eef9ff;border-color:#0b6b9a;}
+  pre{background:#f3fbff;padding:10px;border-radius:6px;overflow:auto;}
+  .result.good{background:#e0f5e0;color:#1a9a3a;padding:8px;border-radius:6px;margin-top:8px;}
+  .result.bad{background:#fbe0e0;color:#d64545;padding:8px;border-radius:6px;margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Doctor Simulation — Circulatory & Respiratory</h1>
+  <p>Interview patients, request investigations, and diagnose conditions. There are 3 patients for this session.</p>
+
+  <div id="menu" class="panel">
+    <h2>Select a Patient</h2>
+    <div id="patientList" class="patient-list"></div>
+  </div>
+
+  <div id="case" class="panel" style="display:none;">
+    <h2 id="caseName">Patient</h2>
+    <p id="caseAge"></p>
+    <p id="caseSummary"></p>
+
+    <div class="panel">
+      <h3>Conversation</h3>
+      <div id="dialogue">Patient sits waiting for questions.</div>
+      <div class="questions">
+        <select id="questionSelect">
+          <option value="chief">What's bothering you?</option>
+          <option value="onset">When did it start?</option>
+          <option value="worse">What makes it worse?</option>
+          <option value="breath">Are you short of breath?</option>
+          <option value="chest">Do you have chest pain?</option>
+          <option value="history">Past heart/lung conditions?</option>
+          <option value="smoke">Do you smoke?</option>
+          <option value="meds">Are you on medications?</option>
+        </select>
+        <button id="askBtn">Ask</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Investigations</h3>
+      <div class="invest-tabs">
+        <span class="tab active" data-tab="vitals">Vitals</span>
+        <span class="tab" data-tab="xray">X-Ray</span>
+        <span class="tab" data-tab="blood">Blood Test</span>
+      </div>
+      <div id="investContent">
+        <pre id="vitals">--</pre>
+        <pre id="xray" style="display:none;">--</pre>
+        <pre id="blood" style="display:none;">--</pre>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Make a Diagnosis</h3>
+      <div id="diagnosisChoices"></div>
+      <div id="diagnosisResult"></div>
+    </div>
+
+    <button id="finishBtn">Finish & Return to Menu</button>
+  </div>
+</div>
+
+<script>
+// Patient data - 3 patients
+const cases = [
+  {
+    id:1,name:"Liam O.",age:64,sex:"Male",
+    summary:"Sudden severe chest pain radiating to left arm, sweaty and nauseous.",
+    symptoms:{chief:"Severe central chest pain radiating to left arm",onset:"1 hour ago",worse:"on exertion",breath:"some shortness",chest:true,history:"hypertension",smoke:"no",meds:"ACE inhibitor"},
+    vitals:{HR:110,BP:"90/60",RR:20,SpO2:"95%",Temp:"36.8°C"},
+    xray:{desc:"Heart size normal, lungs clear."},
+    blood:{troponin:"High",hb:14,wbc:8,crp:3},
+    diagnosis:"Myocardial infarction",
+    choices:["Myocardial infarction","Pneumonia","Asthma exacerbation","Anemia"],
+    notes:"Heart attack signs: chest pain radiating to arm, hypotension, tachycardia, raised troponin."
+  },
+  {
+    id:2,name:"Ava K.",age:17,sex:"Female",
+    summary:"Sudden wheeze and tight chest after sport; uses inhaler sometimes.",
+    symptoms:{chief:"Wheezing and chest tightness",onset:"30 minutes ago",worse:"exercise",breath:"yes, difficulty",chest:false,history:"asthma",smoke:"no",meds:"salbutamol"},
+    vitals:{HR:100,BP:"118/70",RR:28,SpO2:"92%",Temp:"37.0°C"},
+    xray:{desc:"No consolidation. Hyperinflation may be present."},
+    blood:{troponin:"Normal",hb:13,wbc:7,crp:2},
+    diagnosis:"Asthma exacerbation",
+    choices:["Asthma exacerbation","Pneumonia","COPD exacerbation","Pulmonary embolism"],
+    notes:"Young with history of asthma, wheeze, hypoxia — fits asthma exacerbation."
+  },
+  {
+    id:3,name:"Noah M.",age:72,sex:"Male",
+    summary:"Progressive breathlessness over days, productive cough, fever and crackles on auscultation.",
+    symptoms:{chief:"Cough and fever",onset:"4 days",worse:"laying flat",breath:"shortness at rest",chest:true,history:"smoker",smoke:"yes",meds:"none"},
+    vitals:{HR:95,BP:"130/82",RR:24,SpO2:"90%",Temp:"38.3°C"},
+    xray:{desc:"Patchy consolidation in right lower lobe consistent with pneumonia."},
+    blood:{troponin:"Normal",hb:12,wbc:14,crp:80},
+    diagnosis:"Pneumonia",
+    choices:["Pneumonia","COPD exacerbation","Heart failure","Anemia"],
+    notes:"Fever, raised WBC/CRP, CXR consolidation → pneumonia."
+  }
+];
+
+let currentCase=null;
+
+// Build patient list
+const patientListEl = document.getElementById('patientList');
+cases.forEach(c=>{
+  const btn = document.createElement('button');
+  btn.textContent = `${c.name} (${c.age} yrs)`;
+  btn.onclick = ()=>openCase(c.id);
+  patientListEl.appendChild(btn);
+});
+
+function openCase(id){
+  currentCase=cases.find(c=>c.id===id);
+  document.getElementById('menu').style.display='none';
+  document.getElementById('case').style.display='block';
+  document.getElementById('caseName').textContent=currentCase.name;
+  document.getElementById('caseAge').textContent=`${currentCase.age} yrs • ${currentCase.sex}`;
+  document.getElementById('caseSummary').textContent=currentCase.summary;
+  document.getElementById('dialogue').innerHTML="Patient sits waiting for questions.";
+  document.getElementById('vitals').textContent=formatVitals(currentCase.vitals);
+  document.getElementById('xray').textContent=currentCase.xray.desc;
+  document.getElementById('blood').textContent=formatBlood(currentCase.blood);
+  buildDiagnosisButtons();
+}
+
+function formatVitals(v){return `HR: ${v.HR} bpm\nBP: ${v.BP}\nRR: ${v.RR} /min\nSpO2: ${v.SpO2}\nTemp: ${v.Temp}`;}
+function formatBlood(b){return Object.entries(b).map(([k,v])=>`${k}: ${v}`).join("\n");}
+
+// Conversation
+document.getElementById('askBtn').onclick=function(){
+  const q=document.getElementById('questionSelect').value;
+  const answer=currentCase.symptoms[q]||"No response.";
+  document.getElementById('dialogue').innerHTML+=`<p><strong>You:</strong> ${humanQuestion(q)}<br><strong>Patient:</strong> ${answer}</p>`;
+};
+
+function humanQuestion(q){
+  const map={chief:"What's troubling you?",onset:"When did it start?",worse:"What makes it worse?",breath:"Are you short of breath?",chest:"Do you have chest pain?",history:"Past heart/lung conditions?",smoke:"Do you smoke?",meds:"Are you on medications?"};
+  return map[q]||q;
+}
+
+// Investigations tabs
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=function(){
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const tab=t.dataset.tab;
+    ['vitals','xray','blood'].forEach(id=>document.getElementById(id).style.display=(id===tab?'block':'none'));
+  };
+});
+
+// Diagnosis
+function buildDiagnosisButtons(){
+  const container=document.getElementById('diagnosisChoices');
+  container.innerHTML='';
+  currentCase.choices.forEach(ch=>{
+    const btn=document.createElement('button');
+    btn.textContent=ch;
+    btn.onclick=()=>submitDiagnosis(ch);
+    container.appendChild(btn);
+  });
+}
+
+function submitDiagnosis(choice){
+  const isCorrect=choice===currentCase.diagnosis;
+  const res=document.getElementById('diagnosisResult');
+  res.innerHTML='';
+  const div=document.createElement('div');
+  div.className='result '+(isCorrect?'good':'bad');
+  div.innerHTML=`<strong>${isCorrect?'Correct!':'Incorrect'}</strong><br>${currentCase.notes}`;
+  res.appendChild(div);
+  // disable buttons
+  document.querySelectorAll('#diagnosisChoices button').forEach(b=>b.disabled=true);
+}
+
+// Finish button
+document.getElementById('finishBtn').onclick=function(){
+  document.getElementById('case').style.display='none';
+  document.getElementById('menu').style.display='block';
+  document.getElementById('diagnosisResult').innerHTML='';
+};
+
+</script>
+</body>
+</html>
+
