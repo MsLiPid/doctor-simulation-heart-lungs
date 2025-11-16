@@ -24,14 +24,9 @@ textarea{width:100%;min-height:60px;margin-top:6px;padding:6px;border-radius:6px
 <body>
 <div class="container">
 <h1>Doctor Simulation — Circulatory & Respiratory Systems</h1>
-<p>Interview patients, check investigations, and make a diagnosis. Fill in the form below as you work through the cases.</p>
+<p>Interview your patient, check investigations, and make a diagnosis. Fill in the form as you work through the case.</p>
 
-<div id="menu" class="panel">
-  <h2>Select a Patient</h2>
-  <div id="patientList"></div>
-</div>
-
-<div id="case" class="panel" style="display:none;">
+<div id="case" class="panel">
   <h2 id="caseName">Patient</h2>
   <p id="caseAge"></p>
   <p id="caseSummary"></p>
@@ -86,8 +81,6 @@ textarea{width:100%;min-height:60px;margin-top:6px;padding:6px;border-radius:6px
     <textarea id="finalDiagnosis" placeholder="Write your final diagnosis..."></textarea>
     <button id="downloadBtn">Download Answers</button>
   </div>
-
-  <button id="finishBtn">Finish & Return to Menu</button>
 </div>
 
 <script>
@@ -126,18 +119,9 @@ const cases = [
 ];
 
 let currentCase=null;
-const patientListEl = document.getElementById('patientList');
-cases.forEach(c=>{
-  const btn=document.createElement('button');
-  btn.textContent=`${c.name} (${c.age} yrs)`;
-  btn.onclick=()=>openCase(c.id);
-  patientListEl.appendChild(btn);
-});
 
 function openCase(id){
   currentCase=cases.find(c=>c.id===id);
-  document.getElementById('menu').style.display='none';
-  document.getElementById('case').style.display='block';
   document.getElementById('caseName').textContent=currentCase.name;
   document.getElementById('caseAge').textContent=`${currentCase.age} yrs • ${currentCase.sex}`;
   document.getElementById('caseSummary').textContent=currentCase.summary;
@@ -194,12 +178,6 @@ function submitDiagnosis(choice){
   document.querySelectorAll('#diagnosisChoices button').forEach(b=>b.disabled=true);
 }
 
-document.getElementById('finishBtn').onclick=function(){
-  document.getElementById('case').style.display='none';
-  document.getElementById('menu').style.display='block';
-  document.getElementById('diagnosisResult').innerHTML='';
-};
-
 function clearForm(){
   ['obsSymptoms','investigations','reasoning','finalDiagnosis'].forEach(id=>document.getElementById(id).value='');
 }
@@ -212,6 +190,12 @@ document.getElementById('downloadBtn').onclick=function(){
   link.download=`${currentCase.name.replace(' ','_')}_answers.txt`;
   link.href = window.URL.createObjectURL(blob);
   link.click();
+};
+
+// Pick one random patient on load
+window.onload = function() {
+    const randomCase = cases[Math.floor(Math.random() * cases.length)];
+    openCase(randomCase.id);
 };
 </script>
 </body>
